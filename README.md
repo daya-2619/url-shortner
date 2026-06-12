@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Next.js + FastAPI URL Shortener
+
+A highly scalable, production-grade URL shortener built with a decoupled architecture. 
+
+## Architecture
+- **Frontend**: Next.js (App Router, Edge-ready)
+- **Backend API**: Python FastAPI (Uvicorn, async)
+- **Caching & Analytics**: Redis (Read-Through Cache + atomic counters)
+- **Database**: NeonDB (Serverless PostgreSQL with connection pooling via psycopg)
+- **Orchestration**: Docker & Docker Compose
+
+## Features
+- Blazing fast short URL redirection using Redis.
+- Asynchronous background syncing to flush analytics to PostgreSQL without throttling.
+- Dynamic Machine ID assignment for horizontal scaling.
+- Rate limiting to prevent API abuse (`slowapi`).
+- Automated Redis Cache eviction (`allkeys-lru`) for memory safety.
 
 ## Getting Started
 
-First, run the development server:
+### 1. Prerequisites
+Ensure you have the following installed:
+- [Docker & Docker Compose](https://www.docker.com/)
+
+### 2. Environment Setup
+Clone the repository and configure your environment variables:
+```bash
+git clone https://github.com/daya-2619/url-shortner.git
+cd url-shortner
+cp .env.local .env
+```
+Inside `.env`, make sure your `DATABASE_URL` is configured to point to your NeonDB PostgreSQL instance.
+
+### 3. Run with Docker Compose
+The entire stack (Frontend, Backend, and Redis) is containerized. To spin it up locally:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker-compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 4. Verify
+- Open your browser to [http://localhost:3000](http://localhost:3000)
+- You can shorten URLs via the beautiful UI. The Next.js frontend will automatically proxy the API and short URL requests to the FastAPI backend!
