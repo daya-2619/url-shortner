@@ -29,7 +29,7 @@ export default function Home() {
         throw new Error(data.error || 'Failed to shorten URL');
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_SHORT_URL_BASE || 'http://shorten';
+      const baseUrl = process.env.NEXT_PUBLIC_SHORT_URL_BASE || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001');
       const fullShortUrl = `${baseUrl}/${data.shortUrl}`;
       setShortUrl(fullShortUrl);
     } catch (err: any) {
