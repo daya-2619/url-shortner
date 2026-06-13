@@ -62,24 +62,46 @@ async def sync_analytics_background():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global db_pool, redis_client
-    db_pool = AsyncConnectionPool(conninfo=DATABASE_URL, kwargs={"row_factory": dict_row})
-    await db_pool.open()
-    redis_client = redis.from_url(REDIS_URL)
     
-    # Configure Redis eviction policy for cache resilience
+    # 1. Initialize PostgreSQL connection pool safely
     try:
-        await redis_client.config_set("maxmemory-policy", "allkeys-lru")
+        if not DATABASE_URL:
+            raise ValueError("DATABASE_URL environment variable is missing")
+        db_pool = AsyncConnectionPool(conninfo=DATABASE_URL, kwargs={"row_factory": dict_row})
+        await db_pool.open()
+        print("[Startup] PostgreSQL Connection Pool initialized successfully.")
     except Exception as e:
-        print(f"[Redis Config] Could not set maxmemory-policy: {e}")
+        print(f"[Lifespan Startup Error] PostgreSQL failed to initialize: {e}")
+        db_pool = None
 
-    # Start the background sync task
-    sync_task = asyncio.create_task(sync_analytics_background())
-    
+    # 2. Initialize Redis client safely
+    try:
+        if not REDIS_URL:
+            raise ValueError("REDIS_URL environment variable is missing")
+        redis_client = redis.from_url(REDIS_URL)
+        print("[Startup] Redis Client initialized successfully.")
+    except Exception as e:
+        print(f"[Lifespan Startup Error] Redis failed to initialize: {e}")
+        redis_client = None
+
+    # 3. Configure Redis and start background analytics sync task if both are active
+    sync_task = None
+    if db_pool and redis_client:
+        try:
+            await redis_client.config_set("maxmemory-policy", "allkeys-lru")
+        except Exception as e:
+            print(f"[Redis Config] Could not set maxmemory-policy: {e}")
+        sync_task = asyncio.create_task(sync_analytics_background())
+
     yield
-    
-    sync_task.cancel()
-    await db_pool.close()
-    await redis_client.close()
+
+    # 4. Clean up resources on shutdown
+    if sync_task:
+        sync_task.cancel()
+    if db_pool:
+        await db_pool.close()
+    if redis_client:
+        await redis_client.close()
 
 app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
@@ -91,6 +113,8 @@ class ShortenRequest(BaseModel):
 @app.post("/api/urls/shorten")
 @limiter.limit("10/minute")
 async def shorten_url(request: Request, req: ShortenRequest):
+    if not db_pool:
+        raise HTTPException(status_code=500, detail="Database connection is not initialized. Check server environment variables.")
     long_url = str(req.longUrl)
     short_id = generate_short_id()
     
@@ -112,6 +136,9 @@ async def shorten_url(request: Request, req: ShortenRequest):
 async def redirect_url(short_url: str):
     if short_url.startswith("_next") or short_url == "favicon.ico" or short_url == "api":
         raise HTTPException(status_code=404)
+        
+    if not db_pool or not redis_client:
+        raise HTTPException(status_code=500, detail="Database/Cache connections are not initialized. Check server environment variables.")
         
     cache_key = f"mapping:{short_url}"
     original_url = await redis_client.get(cache_key)
@@ -136,6 +163,9 @@ async def redirect_url(short_url: str):
 
 @app.get("/api/analytics/{short_url}")
 async def get_analytics(short_url: str):
+    if not db_pool or not redis_client:
+        raise HTTPException(status_code=500, detail="Database/Cache connections are not initialized. Check server environment variables.")
+        
     async with db_pool.connection() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
@@ -164,6 +194,9 @@ async def get_analytics(short_url: str):
 
 @app.post("/api/analytics/sync")
 async def sync_analytics():
+    if not db_pool or not redis_client:
+        raise HTTPException(status_code=500, detail="Database/Cache connections are not initialized. Check server environment variables.")
+        
     # Keep the manual endpoint just in case, or for tests
     keys = await redis_client.keys("clicks:*")
     if not keys:
