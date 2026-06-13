@@ -31,7 +31,6 @@ services:
       dockerfile: Dockerfile
       args:
         - BACKEND_URL=http://backend:8000
-        - NEXT_PUBLIC_SHORT_URL_BASE=http://shorten
     container_name: url_shortener_frontend
     ports:
       - "3001:3000"
@@ -39,7 +38,6 @@ services:
       - BACKEND_URL=http://backend:8000
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
-      - NEXT_PUBLIC_SHORT_URL_BASE=http://shorten
     depends_on:
       - backend
     restart: unless-stopped
