@@ -107,6 +107,14 @@ app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+@app.get("/health")
+async def health():
+    return {
+        "status": "healthy",
+        "database": "connected" if db_pool is not None else "disconnected",
+        "redis": "connected" if redis_client is not None else "disconnected"
+    }
+
 class ShortenRequest(BaseModel):
     longUrl: HttpUrl
 
