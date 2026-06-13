@@ -1,11 +1,12 @@
 {
   "experimentalServices": {
     "frontend": {
+      "entrypoint": "package.json",
       "routePrefix": "/",
       "framework": "nextjs"
     },
     "backend": {
-      "root": "backend",
+      "entrypoint": "backend/main.py",
       "routePrefix": "/_/backend"
     }
   }
