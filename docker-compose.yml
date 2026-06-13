@@ -20,7 +20,7 @@ services:
       # Inject the unique machine ID per backend replica
       - MACHINE_ID=b
       - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=${REDIS_URL}
     depends_on:
       - redis
     restart: unless-stopped
@@ -29,11 +29,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - BACKEND_URL=http://backend:8000
+        - NEXT_PUBLIC_SHORT_URL_BASE=http://shorten
     container_name: url_shortener_frontend
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - BACKEND_URL=http://backend:8000
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - NEXT_PUBLIC_SHORT_URL_BASE=http://shorten
     depends_on:
       - backend
     restart: unless-stopped

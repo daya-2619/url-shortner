@@ -9,6 +9,12 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
 
+ARG BACKEND_URL
+ENV BACKEND_URL=$BACKEND_URL
+
+ARG NEXT_PUBLIC_SHORT_URL_BASE
+ENV NEXT_PUBLIC_SHORT_URL_BASE=$NEXT_PUBLIC_SHORT_URL_BASE
+
 # Since the Next.js app needs to build, we just let it build the static pieces.
 RUN npm run build
 

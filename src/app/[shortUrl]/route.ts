@@ -24,10 +24,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ shortUrl
         return NextResponse.next();
       }
 
-      originalUrl = mapping[0].original_url;
+      const dbUrl = mapping[0].original_url;
+      if (!dbUrl) {
+        return NextResponse.next();
+      }
+      originalUrl = dbUrl;
 
       // 3. Set the read-through cache with a TTL (e.g., 24 hours = 86400 seconds)
-      await redis.set(cacheKey, originalUrl, 'EX', 86400);
+      await redis.set(cacheKey, dbUrl, 'EX', 86400);
+    }
+
+    if (!originalUrl) {
+      return NextResponse.next();
     }
 
     // 4. Increment the analytics counter in Redis
