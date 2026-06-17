@@ -4,3 +4,4 @@ psycopg[binary,pool]
 redis==5.0.4
 python-dotenv==1.0.1
 slowapi==0.1.9
+httpx==0.27.0

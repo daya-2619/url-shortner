@@ -12,8 +12,7 @@ from dotenv import load_dotenv
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-
-from id_generator import generate_short_id
+import httpx
 
 # Load environment variables from the parent directory's .env.local
 load_dotenv(dotenv_path="../.env.local")
@@ -121,10 +120,16 @@ class ShortenRequest(BaseModel):
 @app.post("/api/urls/shorten")
 @limiter.limit("10/minute")
 async def shorten_url(request: Request, req: ShortenRequest):
-    if not db_pool:
-        raise HTTPException(status_code=500, detail="Database connection is not initialized. Check server environment variables.")
     long_url = str(req.longUrl)
-    short_id = generate_short_id()
+    
+    # Fetch a short ID from the KGS microservice
+    async with httpx.AsyncClient() as client:
+        try:
+            kgs_response = await client.get("http://kgs:8001/api/generate", timeout=5.0)
+            kgs_response.raise_for_status()
+            short_id = kgs_response.json()["id"]
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"KGS Service Unavailable: {e}")
     
     async with db_pool.connection() as conn:
         async with conn.cursor() as cur:

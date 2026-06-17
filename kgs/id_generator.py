@@ -2,7 +2,7 @@ import time
 import os
 
 BASE62_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-MACHINE_ID = os.getenv("MACHINE_ID", "a")
+MACHINE_ID = os.getenv("MACHINE_ID", "k") # 'k' for KGS default
 
 counter = 0
 last_timestamp = 0
