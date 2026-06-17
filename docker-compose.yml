@@ -48,6 +48,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BACKEND_URL: http://nginx:8000
     container_name: url_shortener_frontend
     ports:
       - "3000:3000"
